@@ -354,6 +354,7 @@ export const trainingDays: TrainingDay[] = [
   },
 ];
 
+// 从 CSV 更新的出席数据
 export const attendanceData: Attendance[] = [
   // 大一
   { grade: '大一', name: '劉冠妤', days: [true, true, true] },
@@ -390,4 +391,3 @@ export const calendarEvents: CalendarEvent[] = [
   { date: '2025-12-30', week: 18, dayOfWeek: '二', afternoon: '醫體', isTraining: true },
   { date: '2025-12-31', week: 18, dayOfWeek: '三', afternoon: '醫體', isTraining: true },
 ];
-

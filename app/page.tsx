@@ -4,12 +4,9 @@ import { useState } from 'react'
 import CalendarView from '@/components/CalendarView'
 import TimelineView from '@/components/TimelineView'
 import AttendanceView from '@/components/AttendanceView'
-import AdminTimelineView from '@/components/AdminTimelineView'
-import { useAdmin } from '@/contexts/AdminContext'
 import { Calendar, Clock, Users } from 'lucide-react'
 
 export default function Home() {
-  const { isAdmin } = useAdmin()
   const [activeTab, setActiveTab] = useState<'calendar' | 'timeline' | 'attendance'>('calendar')
 
   return (
@@ -53,17 +50,10 @@ export default function Home() {
 
       {/* Content */}
       <div className="bg-white rounded-lg shadow-lg p-6">
-        {isAdmin && activeTab === 'timeline' ? (
-          <AdminTimelineView />
-        ) : (
-          <>
-            {activeTab === 'calendar' && <CalendarView />}
-            {activeTab === 'timeline' && <TimelineView />}
-            {activeTab === 'attendance' && <AttendanceView />}
-          </>
-        )}
+        {activeTab === 'calendar' && <CalendarView />}
+        {activeTab === 'timeline' && <TimelineView />}
+        {activeTab === 'attendance' && <AttendanceView />}
       </div>
     </div>
   )
 }
-

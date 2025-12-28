@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google'
 import React from 'react'
 import './globals.css'
 import Navigation from '@/components/Navigation'
-import { AdminProvider } from '@/contexts/AdminContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,16 +19,13 @@ export default function RootLayout({
   return (
     <html lang="zh-TW">
       <body className={inter.className}>
-        <AdminProvider>
-          <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
-            <Navigation />
-            <main className="container mx-auto px-4 py-8">
-              {children}
-            </main>
-          </div>
-        </AdminProvider>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
+          <Navigation />
+          <main className="container mx-auto px-4 py-8">
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   )
 }
-

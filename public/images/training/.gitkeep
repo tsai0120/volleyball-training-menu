@@ -1,0 +1,4 @@
+# 将训练项目的图片放在这个文件夹
+# 然后在 lib/data.ts 中使用相对路径引用
+# 例如：imageUrl: '/images/training/your-image.jpg'
+

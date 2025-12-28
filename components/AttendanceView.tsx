@@ -2,19 +2,15 @@
 
 import { useState } from 'react'
 import { useTrainingData } from '@/hooks/useTrainingData'
-import { useAdmin } from '@/contexts/AdminContext'
 import { Attendance } from '@/types'
-import { Users, CheckCircle, XCircle, Plus, Trash2, Edit2 } from 'lucide-react'
+import { Users, CheckCircle, XCircle } from 'lucide-react'
 
 // 场地费：12/29用1400，12/30和12/31用2400
 const VENUE_FEES = [1400, 2400, 2400]
 
 export default function AttendanceView() {
-  const { attendanceData, updateAttendance } = useTrainingData()
-  const { isAdmin } = useAdmin()
+  const { attendanceData } = useTrainingData()
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
-  const [editingPerson, setEditingPerson] = useState<{ index: number; person: Attendance } | null>(null)
-  const [newPerson, setNewPerson] = useState({ grade: '', name: '', days: [false, false, false] })
 
   const days = ['12/29', '12/30', '12/31']
 
@@ -38,28 +34,15 @@ export default function AttendanceView() {
     return Math.round((VENUE_FEES[dayIndex] / count) * 100) / 100
   }
 
-  const handleSavePerson = () => {
-    if (editingPerson) {
-      const updated = [...attendanceData]
-      updated[editingPerson.index] = editingPerson.person
-      updateAttendance(updated)
-      setEditingPerson(null)
-    }
-  }
-
-  const handleAddPerson = () => {
-    if (newPerson.name && newPerson.grade) {
-      updateAttendance([...attendanceData, { ...newPerson }])
-      setNewPerson({ grade: '', name: '', days: [false, false, false] })
-    }
-  }
-
-  const handleDeletePerson = (index: number) => {
-    if (confirm('確定要刪除此人員嗎？')) {
-      const updated = [...attendanceData]
-      updated.splice(index, 1)
-      updateAttendance(updated)
-    }
+  // 计算每人总费用（三天加总）
+  const getTotalFeeForPerson = (person: Attendance) => {
+    let total = 0
+    person.days.forEach((attended, dayIndex) => {
+      if (attended) {
+        total += getVenueFeePerPerson(dayIndex)
+      }
+    })
+    return Math.round(total * 100) / 100
   }
 
   return (
@@ -101,55 +84,6 @@ export default function AttendanceView() {
         })}
       </div>
 
-      {/* Add New Person (Admin Only) */}
-      {isAdmin && (
-        <div className="mb-6 p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-            <Plus className="w-5 h-5" />
-            新增人員
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <input
-              type="text"
-              placeholder="系級"
-              value={newPerson.grade}
-              onChange={(e) => setNewPerson({ ...newPerson, grade: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg"
-            />
-            <input
-              type="text"
-              placeholder="姓名"
-              value={newPerson.name}
-              onChange={(e) => setNewPerson({ ...newPerson, name: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg"
-            />
-            <div className="flex gap-2">
-              {newPerson.days.map((day, dayIndex) => (
-                <label key={dayIndex} className="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={day}
-                    onChange={(e) => {
-                      const newDays = [...newPerson.days]
-                      newDays[dayIndex] = e.target.checked
-                      setNewPerson({ ...newPerson, days: newDays })
-                    }}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm">{days[dayIndex]}</span>
-                </label>
-              ))}
-            </div>
-            <button
-              onClick={handleAddPerson}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              新增
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Attendance List by Grade */}
       <div className="space-y-6">
         {Object.entries(groupedByGrade).map(([grade, people]) => (
@@ -159,116 +93,56 @@ export default function AttendanceView() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {people.map((person, personIndex) => {
-                const globalIndex = attendanceData.findIndex(p => p.name === person.name && p.grade === person.grade)
-                const isEditing = editingPerson?.index === globalIndex
+                const totalFee = getTotalFeeForPerson(person)
                 
                 return (
                   <div
                     key={personIndex}
                     className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-all"
                   >
-                    {isEditing ? (
-                      <div className="space-y-3">
-                        <input
-                          type="text"
-                          value={editingPerson!.person.name}
-                          onChange={(e) => setEditingPerson({
-                            ...editingPerson!,
-                            person: { ...editingPerson!.person, name: e.target.value }
-                          })}
-                          className="w-full px-2 py-1 border border-gray-300 rounded"
-                        />
-                        <div className="flex gap-2">
-                          {editingPerson!.person.days.map((day, dayIndex) => (
-                            <label key={dayIndex} className="flex items-center gap-1 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={day}
-                                onChange={(e) => {
-                                  const newDays = [...editingPerson!.person.days]
-                                  newDays[dayIndex] = e.target.checked
-                                  setEditingPerson({
-                                    ...editingPerson!,
-                                    person: { ...editingPerson!.person, days: newDays }
-                                  })
-                                }}
-                                className="w-4 h-4"
-                              />
-                              <span className="text-xs">{days[dayIndex]}</span>
-                            </label>
-                          ))}
+                    <div className="font-semibold text-gray-800 mb-3">{person.name}</div>
+                    <div className="flex gap-2 mb-3">
+                      {person.days.map((attended, dayIndex) => (
+                        <div
+                          key={dayIndex}
+                          className={`flex-1 p-2 rounded text-center text-xs font-semibold ${
+                            selectedDay === null || selectedDay === dayIndex
+                              ? attended
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-gray-100 text-gray-400'
+                              : 'bg-gray-50 text-gray-300'
+                          }`}
+                        >
+                          {attended ? (
+                            <CheckCircle className="w-4 h-4 mx-auto" />
+                          ) : (
+                            <XCircle className="w-4 h-4 mx-auto" />
+                          )}
+                          <div className="mt-1">{days[dayIndex]}</div>
                         </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={handleSavePerson}
-                            className="flex-1 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-                          >
-                            儲存
-                          </button>
-                          <button
-                            onClick={() => setEditingPerson(null)}
-                            className="flex-1 px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
-                          >
-                            取消
-                          </button>
+                      ))}
+                    </div>
+                    {/* 显示每人每天的场地费 */}
+                    <div className="text-xs text-gray-600 space-y-1 mb-3">
+                      {person.days.map((attended, dayIndex) => {
+                        if (!attended) return null
+                        const fee = getVenueFeePerPerson(dayIndex)
+                        return (
+                          <div key={dayIndex} className="flex justify-between">
+                            <span>{days[dayIndex]}：</span>
+                            <span className="font-semibold text-blue-600">${fee.toLocaleString()}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {/* 总费用 */}
+                    {totalFee > 0 && (
+                      <div className="pt-3 border-t border-gray-300">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-semibold text-gray-700">總計：</span>
+                          <span className="text-lg font-bold text-green-600">${totalFee.toLocaleString()}</span>
                         </div>
                       </div>
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="font-semibold text-gray-800">{person.name}</div>
-                          {isAdmin && (
-                            <div className="flex gap-1">
-                              <button
-                                onClick={() => setEditingPerson({ index: globalIndex, person: { ...person } })}
-                                className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeletePerson(globalIndex)}
-                                className="p-1 text-red-600 hover:bg-red-100 rounded"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex gap-2 mb-3">
-                          {person.days.map((attended, dayIndex) => (
-                            <div
-                              key={dayIndex}
-                              className={`flex-1 p-2 rounded text-center text-xs font-semibold ${
-                                selectedDay === null || selectedDay === dayIndex
-                                  ? attended
-                                    ? 'bg-green-100 text-green-700'
-                                    : 'bg-gray-100 text-gray-400'
-                                  : 'bg-gray-50 text-gray-300'
-                              }`}
-                            >
-                              {attended ? (
-                                <CheckCircle className="w-4 h-4 mx-auto" />
-                              ) : (
-                                <XCircle className="w-4 h-4 mx-auto" />
-                              )}
-                              <div className="mt-1">{days[dayIndex]}</div>
-                            </div>
-                          ))}
-                        </div>
-                        {/* 显示每人平分的场地费 */}
-                        <div className="text-xs text-gray-600 space-y-1">
-                          {person.days.map((attended, dayIndex) => {
-                            if (!attended) return null
-                            const fee = getVenueFeePerPerson(dayIndex)
-                            return (
-                              <div key={dayIndex} className="flex justify-between">
-                                <span>{days[dayIndex]}：</span>
-                                <span className="font-semibold text-blue-600">${fee.toLocaleString()}</span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </>
                     )}
                   </div>
                 )
